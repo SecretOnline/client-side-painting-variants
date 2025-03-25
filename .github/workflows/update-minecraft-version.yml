@@ -1,4 +1,5 @@
 name: Update Minecraft Version
+run-name: Update Minecraft Version (${{ inputs.minecraft-version || 'latest' }})
 
 on:
   schedule:
@@ -11,13 +12,23 @@ on:
         description: New Minecraft version
         required: true
         type: string
+      max-minecraft-version:
+        description: Maximum Minecraft version for version range
+        type: string
       ignore-mod-dependencies:
         description: Ignore mod dependency versions
+        type: boolean
+      branch-only:
+        description: Do not create PR
         type: boolean
 
 jobs:
   update-minecraft:
+    name: Update Minecraft Version
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -38,6 +49,7 @@ jobs:
         uses: ./.github/actions/update-versions
         with:
           minecraft-version: ${{ inputs.minecraft-version }}
+          max-minecraft-version: ${{ inputs.max-minecraft-version }}
           ignore-mod-dependencies: ${{ inputs.ignore-mod-dependencies }}
 
       - name: Update files
@@ -53,8 +65,19 @@ jobs:
           sed -i -e '/loader_version=/ s/=.*/=${{ steps.update-versions.outputs.loader-version }}/' gradle.properties
           sed -i -e '/fabric_version=/ s/=.*/=${{ steps.update-versions.outputs.fabric-api-version }}/' gradle.properties
 
+      - name: Create standalone branch
+        if: steps.update-versions.outputs.has-updates == 'true' && inputs.branch-only
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          git checkout -b auto-update/${{ steps.update-versions.outputs.minecraft-version }}
+          git add src/client/resources/fabric.mod.json gradle.properties
+          git commit -m "Update to Minecraft ${{ steps.update-versions.outputs.minecraft-version }}"
+          git push origin auto-update/${{ steps.update-versions.outputs.minecraft-version }}
+
       - name: Prepare PR body
-        if: steps.update-versions.outputs.has-updates == 'true'
+        if: steps.update-versions.outputs.has-updates == 'true' && !inputs.branch-only
         run: |
           touch pr-body.md
           cat << "EOF_AiVMO7YIg1" >> pr-body.md
@@ -79,7 +102,7 @@ jobs:
           EOF_AiVMO7YIg1
 
       - name: Create Pull Request
-        if: steps.update-versions.outputs.has-updates == 'true'
+        if: steps.update-versions.outputs.has-updates == 'true' && !inputs.branch-only
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.CREATE_PR_PAT }}

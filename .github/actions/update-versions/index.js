@@ -2,7 +2,7 @@ import { getInput, info, setOutput, warning } from "@actions/core";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { URL, URLSearchParams } from "node:url";
-import { minSatisfying } from "semver";
+import { minSatisfying, satisfies } from "semver";
 import { getAllMinecraftVersions, getMinecraftVersion } from "../lib/mojang.js";
 import {
   addAllZeroVersions,
@@ -33,6 +33,18 @@ function getUpdateVersion() {
   return allVersions.latest.release;
 }
 
+/**
+ * @returns {string | null}
+ */
+function getMaxUpdateVersion() {
+  const inputValue = getInput("max-minecraft-version");
+  if (inputValue) {
+    return inputValue;
+  }
+
+  return null;
+}
+
 const versionToUpdate = getUpdateVersion();
 const updateVersionInfo = await getMinecraftVersion(versionToUpdate);
 
@@ -47,45 +59,42 @@ async function getNewVersionRange() {
     return versionToUpdate;
   }
 
-  const allReleaseVersions = allVersions.versions.filter(
-    (v) => v.type === "release"
-  );
-  const minMatchingSemver = minSatisfying(
-    allReleaseVersions.map((v) => parseVersionSafe(v.id)),
-    recommendsRange
-  );
-  if (!minMatchingSemver) {
-    throw new Error(`No versions matched range ${recommendsRange}`);
-  }
-
-  const maxMatchingInfo = await getMinecraftVersion(
-    minMatchingSemver.toString()
-  );
-
-  const isSameMajor = updateSemver.major === minMatchingSemver.major;
-  const isSameMinor = updateSemver.minor === minMatchingSemver.minor;
-  const isSameJava =
-    updateVersionInfo.javaVersion.majorVersion ===
-    maxMatchingInfo.javaVersion.majorVersion;
-
-  // Note: If changing this so multiple minor versions are allowed to co-exist,
-  // make sure to update the version range logic further down.
-  // It might be fine as-is, but may need updating.
-  const shouldAddToExistingRange = isSameMajor && isSameMinor && isSameJava;
-
-  if (!shouldAddToExistingRange) {
-    info(
-      `New version probably isn't compatible with existing versions of Minecraft. Starting new version range ${versionToUpdate}`
+  if (satisfies(updateSemver, recommendsRange)) {
+    // New version already satisfies the current range, but double check Java version first.
+    const allReleaseVersions = allVersions.versions.filter(
+      (v) => v.type === "release"
     );
-    // Luckily we don't need to remove any zero versions at the end, since this is from the input directly
-    return versionToUpdate;
+    const minMatchingSemver = minSatisfying(
+      allReleaseVersions.map((v) => parseVersionSafe(v.id)),
+      recommendsRange
+    );
+    if (!minMatchingSemver) {
+      throw new Error(`No versions matched range ${recommendsRange}`);
+    }
+
+    const minMatchingInfo = await getMinecraftVersion(
+      minMatchingSemver.toString()
+    );
+
+    const isSameJava =
+      updateVersionInfo.javaVersion.majorVersion ===
+      minMatchingInfo.javaVersion.majorVersion;
+    if (isSameJava) {
+      return recommendsRange;
+    }
+
+    // New version satisfies range, but has new Java version so is incompatible.
   }
 
+  const minVersion = versionToUpdate;
+  const maxUpdateVersion = getMaxUpdateVersion();
   // Current rules mean that the minor version is always the same, so we can use a range here
   // Also we're assuming middle versions are compatible. This should always be the case, but
   // I can't wait to eat my words on that one.
   const simplified = trimAllZeroVersions(
-    `${minMatchingSemver.toString()} - ${versionToUpdate}`
+    maxUpdateVersion !== null
+      ? `${minVersion} - ${maxUpdateVersion}`
+      : `~${minVersion}`
   );
 
   info(
@@ -182,6 +191,7 @@ async function getFabricLoaderVersion() {
   return data[0].version;
 }
 
+// Early exit if latest version already matches
 const newVersionRange = await getNewVersionRange();
 const fabricApiVersion = await getModrinthProjectVersion("fabric-api");
 const modMenuVersion = await getModrinthProjectVersion("modmenu");
@@ -196,3 +206,5 @@ setOutput("yarn-mappings-version", yarnMappingsVersion);
 setOutput("fabric-api-version", fabricApiVersion);
 setOutput("mod-menu-version", modMenuVersion);
 setOutput("loader-version", fabricLoaderVersion);
+// Do not add code below the above closing brace, as it will run whether or not any updates happened.
+// Control flow is hard.
