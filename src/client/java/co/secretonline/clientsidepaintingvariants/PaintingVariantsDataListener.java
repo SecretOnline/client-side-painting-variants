@@ -11,23 +11,23 @@ import org.slf4j.Logger;
 
 import com.google.gson.JsonObject;
 
-import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourceReloader;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
-public class PaintingVariantsDataListener implements IdentifiableResourceReloadListener {
+public class PaintingVariantsDataListener implements ResourceReloader {
 	private static Logger LOGGER = ClientSidePaintingVariants.LOGGER;
 
 	@Override
-	public CompletableFuture<Void> reload(Synchronizer synchronizer, ResourceManager resourceManager,
-			Executor prepareExecutor, Executor applyExecutor) {
+	public CompletableFuture<Void> reload(Store store, Executor prepareExecutor, Synchronizer reloadSynchronizer,
+			Executor applyExecutor) {
 		return CompletableFuture
 				.supplyAsync(
-						() -> this.getPaintingsFromData(resourceManager),
+						() -> this.getPaintingsFromData(store.getResourceManager()),
 						prepareExecutor)
-				.thenCompose(synchronizer::whenPrepared)
+				.thenCompose(reloadSynchronizer::whenPrepared)
 				.thenAcceptAsync(
 						(paintings) -> PaintingsInfo.getInstance().setRegistryPaintings(paintings),
 						applyExecutor);
@@ -66,10 +66,5 @@ public class PaintingVariantsDataListener implements IdentifiableResourceReloadL
 		});
 
 		return paintings;
-	}
-
-	@Override
-	public Identifier getFabricId() {
-		return ClientSidePaintingVariants.id("data-listener");
 	}
 }
