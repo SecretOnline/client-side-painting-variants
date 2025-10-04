@@ -2,4 +2,4 @@ accessWidener v2 named
 
 # Used by PaintingEntityRendererMixin to get an arbitrary painting from the PaintingManager
 # Since is has to go on the super class it's a bit wider than I'd like, but it's what works.
-accessible	method	net/minecraft/client/texture/SpriteAtlasHolder	getSprite	(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/texture/Sprite;
+accessible	method	net/minecraft/client/texture/SpriteAtlasTexture	getSprite	(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/texture/Sprite;
