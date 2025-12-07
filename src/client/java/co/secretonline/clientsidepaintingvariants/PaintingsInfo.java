@@ -8,8 +8,8 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.decoration.PaintingVariant;
+import net.minecraft.resources.ResourceLocation;
 
 public class PaintingsInfo {
 	private static Logger LOGGER = ClientSidePaintingVariants.LOGGER;
@@ -28,20 +28,20 @@ public class PaintingsInfo {
 		return a + "x" + b;
 	}
 
-	private Map<Identifier, PaintingVariant> registryPaintings;
-	private Map<Identifier, PaintingVariant> resourcePaintings;
+	private Map<ResourceLocation, PaintingVariant> registryPaintings;
+	private Map<ResourceLocation, PaintingVariant> resourcePaintings;
 
 	private Map<String, PaintingsForSize> resolvedPaintingsMap = new HashMap<>();
 
 	private PaintingsInfo() {
 	}
 
-	public void setRegistryPaintings(Map<Identifier, PaintingVariant> paintings) {
+	public void setRegistryPaintings(Map<ResourceLocation, PaintingVariant> paintings) {
 		registryPaintings = paintings;
 		this.resolvePaintings();
 	}
 
-	public void setResourcePaintings(Map<Identifier, PaintingVariant> paintings) {
+	public void setResourcePaintings(Map<ResourceLocation, PaintingVariant> paintings) {
 		resourcePaintings = paintings;
 		this.resolvePaintings();
 	}
@@ -144,8 +144,8 @@ public class PaintingsInfo {
 	}
 
 	static public class PaintingsForSize {
-		private Map<Identifier, PaintingVariant> registryPaintings = new HashMap<>();
-		private Map<Identifier, PaintingVariant> resourcePaintings = new HashMap<>();
+		private Map<ResourceLocation, PaintingVariant> registryPaintings = new HashMap<>();
+		private Map<ResourceLocation, PaintingVariant> resourcePaintings = new HashMap<>();
 
 		public List<PaintingVariant> getRegistryPaintings() {
 			return List.copyOf(registryPaintings.values());
