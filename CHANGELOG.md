@@ -18,6 +18,12 @@ The versioning scheme is listed in the README.
 
 Minecraft 1.x.x
 
+### Changed
+
+- Internal changes (no change to functionality).
+  - Updated versions of Loom and Gradle used to build.
+  - Switched from Yarn to Mojmaps.
+
 ## v1.1.5 - 2025-10-05
 
 Minecraft 1.21.9

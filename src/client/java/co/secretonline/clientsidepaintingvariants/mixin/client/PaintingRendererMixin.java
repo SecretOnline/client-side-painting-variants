@@ -6,16 +6,16 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import co.secretonline.clientsidepaintingvariants.PaintingsInfo;
-import net.minecraft.client.render.entity.PaintingEntityRenderer;
-import net.minecraft.client.render.entity.state.PaintingEntityRenderState;
-import net.minecraft.entity.decoration.painting.PaintingEntity;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
+import net.minecraft.client.renderer.entity.PaintingRenderer;
+import net.minecraft.client.renderer.entity.state.PaintingRenderState;
+import net.minecraft.world.entity.decoration.Painting;
+import net.minecraft.world.entity.decoration.PaintingVariant;
 
-@Mixin(PaintingEntityRenderer.class)
-public class PaintingEntityRendererMixin {
-	@Inject(method = "updateRenderState", at = @At("RETURN"))
-	private void injectUpdateRenderState(PaintingEntity paintingEntity,
-			PaintingEntityRenderState paintingEntityRenderState, float f, CallbackInfo ci) {
+@Mixin(PaintingRenderer.class)
+public class PaintingRendererMixin {
+	@Inject(method = "extractRenderState", at = @At("RETURN"))
+	private void injectExtractRenderState(Painting paintingEntity,
+			PaintingRenderState paintingEntityRenderState, float f, CallbackInfo ci) {
 		PaintingVariant paintingVariant = (PaintingVariant) paintingEntity.getVariant().value();
 
 		PaintingsInfo paintingInfo = PaintingsInfo.getInstance();
@@ -33,7 +33,7 @@ public class PaintingEntityRendererMixin {
 		int numTotal = numRegistered + numAdded;
 
 		// Use the hash of the UUID as a stable random value for this entity.
-		int hash = paintingEntity.getUuid().hashCode();
+		int hash = paintingEntity.getUUID().hashCode();
 
 		// % can be negative, so add the total and % again for the proper modulo.
 		int modulo = ((hash % (numTotal)) + numTotal) % numTotal;

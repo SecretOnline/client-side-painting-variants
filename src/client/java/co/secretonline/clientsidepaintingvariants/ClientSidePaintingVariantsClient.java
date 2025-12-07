@@ -5,18 +5,18 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.text.Text;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.network.chat.Component;
 
 public class ClientSidePaintingVariantsClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 
-		ResourceLoader.get(ResourceType.CLIENT_RESOURCES).registerReloader(
+		ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloader(
 				ClientSidePaintingVariants.id("resource-listener"),
 				new PaintingVariantsResourceListener());
 
-		ResourceLoader.get(ResourceType.SERVER_DATA).registerReloader(
+		ResourceLoader.get(PackType.SERVER_DATA).registerReloader(
 				ClientSidePaintingVariants.id("data-listener"),
 				new PaintingVariantsDataListener());
 
@@ -26,7 +26,7 @@ public class ClientSidePaintingVariantsClient implements ClientModInitializer {
 					ResourceManagerHelper.registerBuiltinResourcePack(
 							ClientSidePaintingVariants.id("logo"),
 							container,
-							Text.of("Client Side Painting Variants - Logo"),
+							Component.literal("Client Side Painting Variants - Logo"),
 							ResourcePackActivationType.NORMAL);
 				});
 	}

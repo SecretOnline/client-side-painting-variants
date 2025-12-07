@@ -11,23 +11,24 @@ import org.slf4j.Logger;
 
 import com.google.gson.JsonObject;
 
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceReloader;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.entity.decoration.PaintingVariant;
 
-public class PaintingVariantsResourceListener implements ResourceReloader {
+public class PaintingVariantsResourceListener implements PreparableReloadListener {
 	private static Logger LOGGER = ClientSidePaintingVariants.LOGGER;
 
 	@Override
-	public CompletableFuture<Void> reload(Store store, Executor prepareExecutor, Synchronizer reloadSynchronizer,
+	public CompletableFuture<Void> reload(SharedState store, Executor prepareExecutor,
+			PreparationBarrier reloadSynchronizer,
 			Executor applyExecutor) {
 		return CompletableFuture
 				.supplyAsync(
-						() -> this.getPaintingsFromResources(store.getResourceManager()),
+						() -> this.getPaintingsFromResources(store.resourceManager()),
 						prepareExecutor)
-				.thenCompose(reloadSynchronizer::whenPrepared)
+				.thenCompose(reloadSynchronizer::wait)
 				.thenAcceptAsync(
 						(paintings) -> PaintingsInfo.getInstance().setResourcePaintings(paintings),
 						applyExecutor);
@@ -38,23 +39,23 @@ public class PaintingVariantsResourceListener implements ResourceReloader {
 	 * {@link PaintingVariantsDataListener}.
 	 * If making changes here, be sure to also change there too.
 	 */
-	private Map<Identifier, PaintingVariant> getPaintingsFromResources(ResourceManager resourceManager) {
-		Map<Identifier, PaintingVariant> paintings = new HashMap<>();
+	private Map<ResourceLocation, PaintingVariant> getPaintingsFromResources(ResourceManager resourceManager) {
+		Map<ResourceLocation, PaintingVariant> paintings = new HashMap<>();
 
 		// Load all files from resource packs that should contain painting variants.
 		// Vanilla paintings shouldn't appear in this list, as this is reading from
 		// resources and not data.
-		var allVariantJsonFiles = resourceManager.findResources(
+		var allVariantJsonFiles = resourceManager.listResources(
 				"painting_variant",
 				identifier -> identifier.getPath().endsWith(".json"));
 
 		allVariantJsonFiles.forEach((identifier, resource) -> {
-			try (var reader = resource.getReader()) {
-				JsonObject data = JsonHelper.deserialize(reader).getAsJsonObject();
+			try (var reader = resource.openAsReader()) {
+				JsonObject data = GsonHelper.parse(reader).getAsJsonObject();
 				int width = data.get("width").getAsInt();
 				int height = data.get("height").getAsInt();
 
-				Identifier assetId = Identifier.of(data.get("asset_id").getAsString());
+				ResourceLocation assetId = ResourceLocation.parse(data.get("asset_id").getAsString());
 
 				// TODO: Read text components
 				paintings.put(identifier, new PaintingVariant(width, height, assetId, Optional.empty(), Optional.empty()));
